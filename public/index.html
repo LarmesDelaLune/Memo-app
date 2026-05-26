@@ -697,6 +697,7 @@ function escHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt
 
 // ---------- 侧边栏 ----------
 P('btnSidebarToggle').onclick = () => sidebar.classList.toggle('open');
+document.querySelector('.main').addEventListener('click', () => sidebar.classList.remove('open'));
 
 async function loadTags() {
   try {
