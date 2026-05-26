@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#6366f1">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<title>备忘录</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f8f9fb;
+  --card-bg: #ffffff;
+  --text: #1a1a2e;
+  --text-secondary: #6b7280;
+  --primary: #6366f1;
+  --primary-light: #eef2ff;
+  --primary-hover: #4f46e5;
+  --danger: #f43f5e;
+  --danger-light: #fff1f2;
+  --border: #e5e7eb;
+  --border-light: #f3f4f6;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg: 0 20px 40px rgba(0,0,0,.08);
+  --shadow-xl: 0 25px 50px rgba(0,0,0,.12);
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --transition: .2s cubic-bezier(.4,0,.2,1);
+  --sidebar-w: 260px;
+}
+
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  background: var(--bg);
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(99,102,241,.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(99,102,241,.02) 0%, transparent 50%);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---------- 登录页 ---------- */
+.login-page { display: none; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+.login-page.active { display: flex; }
+.login-card {
+  background: var(--card-bg); border-radius: var(--radius-xl);
+  padding: 48px 36px; width: 100%; max-width: 400px;
+  box-shadow: var(--shadow-lg); text-align: center; animation: fadeUp .5s ease;
+}
+.login-card .logo {
+  width: 56px; height: 56px; border-radius: 16px;
+  background: linear-gradient(135deg, var(--primary), #8b5cf6);
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-bottom: 20px; font-size: 28px; color: #fff;
+  box-shadow: 0 8px 24px rgba(99,102,241,.25);
+}
+.login-card h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; letter-spacing: -.3px; }
+.login-card .sub { color: var(--text-secondary); font-size: 14px; margin-bottom: 28px; }
+.login-card .field { text-align: left; margin-bottom: 14px; }
+.login-card .field label { display: block; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 5px; }
+.login-card input {
+  width: 100%; padding: 11px 14px; font-size: 15px;
+  border: 1.5px solid var(--border); border-radius: var(--radius);
+  outline: none; transition: border-color var(--transition), box-shadow var(--transition); background: var(--bg);
+}
+.login-card input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(99,102,241,.1); }
+.login-card button {
+  width: 100%; margin-top: 6px; padding: 12px;
+  background: linear-gradient(135deg, var(--primary), #5b21b6);
+  color: #fff; border: none; border-radius: var(--radius);
+  font-size: 15px; font-weight: 600; cursor: pointer;
+  transition: all var(--transition); box-shadow: 0 2px 8px rgba(99,102,241,.3);
+}
+.login-card button:hover { box-shadow: 0 4px 16px rgba(99,102,241,.4); transform: translateY(-1px); }
+.login-card button:active { transform: translateY(0); }
+.login-error { color: var(--danger); font-size: 13px; margin-top: 14px; display: none; background: var(--danger-light); padding: 8px 12px; border-radius: var(--radius-sm); }
+
+/* ---------- 主页面布局 ---------- */
+.app-page { display: none; flex-direction: column; min-height: 100vh; }
+.app-page.active { display: flex; animation: fadeIn .3s ease; }
+.app-body { display: flex; flex: 1; }
+
+.header {
+  background: rgba(255,255,255,.8); backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px; height: 60px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 10;
+}
+.header h1 {
+  font-size: 17px; font-weight: 700; letter-spacing: -.3px;
+  background: linear-gradient(135deg, var(--text), #4f46e5);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.btn-sidebar-toggle {
+  display: none; width: 36px; height: 36px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--card-bg);
+  cursor: pointer; font-size: 18px; align-items: center; justify-content: center;
+  transition: all var(--transition); color: var(--text-secondary);
+}
+.btn-sidebar-toggle:hover { background: var(--bg); }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.header-right .user-tag { font-size: 13px; color: var(--text-secondary); font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.header-right .role-badge {
+  font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 12px;
+  background: var(--primary-light); color: var(--primary); text-transform: uppercase; letter-spacing: .5px;
+}
+.header-right button {
+  padding: 7px 15px; font-size: 13px; font-weight: 500;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--card-bg); cursor: pointer; transition: all var(--transition); color: var(--text-secondary);
+}
+.header-right button:hover { background: var(--bg); color: var(--text); }
+.btn-admin { border-color: var(--primary) !important; color: var(--primary) !important; background: var(--primary-light) !important; }
+.btn-admin:hover { filter: brightness(.97); }
+
+/* ---------- 侧边栏 ---------- */
+.sidebar {
+  width: var(--sidebar-w); min-width: var(--sidebar-w);
+  background: var(--card-bg); border-right: 1px solid var(--border);
+  padding: 20px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;
+  height: calc(100vh - 60px); position: sticky; top: 60px;
+}
+.sidebar-section h4 {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px; color: #aaa; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sidebar-section h4 .badge { font-size: 10px; color: var(--text-secondary); font-weight: 400; letter-spacing: 0; }
+.tag-list { display: flex; flex-direction: column; gap: 2px; }
+.tag-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 10px; border-radius: var(--radius-sm); font-size: 13px;
+  cursor: pointer; transition: all var(--transition); color: var(--text-secondary);
+  font-weight: 500; position: relative;
+}
+.tag-item:hover { background: var(--primary-light); color: var(--primary); }
+.tag-item.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+.tag-item .count { font-size: 11px; color: #aaa; background: var(--border-light); padding: 1px 7px; border-radius: 10px; }
+.tag-item.active .count { background: #ddd6fe; color: var(--primary); }
+
+.btn-all-notes {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 10px; border-radius: var(--radius-sm); font-size: 13px;
+  cursor: pointer; transition: all var(--transition); color: var(--text); font-weight: 600;
+}
+.btn-all-notes:hover { background: var(--primary-light); color: var(--primary); }
+.btn-all-notes.active { background: var(--primary-light); color: var(--primary); }
+
+.history-list { display: flex; flex-direction: column; gap: 3px; }
+.history-item {
+  padding: 8px 10px; border-radius: var(--radius-sm); font-size: 12px;
+  cursor: pointer; transition: all var(--transition); color: var(--text-secondary);
+  display: flex; flex-direction: column; gap: 1px;
+}
+.history-item:hover { background: var(--bg); color: var(--text); }
+.history-item .h-time { font-size: 11px; color: #aaa; }
+.history-empty { font-size: 12px; color: #bbb; padding: 8px 10px; }
+
+.divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+/* 目录树 */
+.folder-tree { display: flex; flex-direction: column; gap: 1px; }
+.folder-row {
+  display: flex; align-items: center; gap: 4px; padding: 5px 4px;
+  border-radius: var(--radius-sm); font-size: 13px; cursor: pointer;
+  transition: all var(--transition); color: var(--text-secondary); font-weight: 500;
+  position: relative; user-select: none;
+}
+.folder-row:hover { background: var(--bg); color: var(--text); }
+.folder-row.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+.folder-row .arrow {
+  width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; flex-shrink: 0; color: #bbb; transition: transform .15s;
+}
+.folder-row .arrow.open { transform: rotate(90deg); }
+.folder-row .arrow.hidden { visibility: hidden; }
+.folder-row .folder-icon { font-size: 14px; flex-shrink: 0; }
+.folder-row .folder-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-row .badge { font-size: 10px; color: #aaa; background: var(--border-light); padding: 1px 6px; border-radius: 8px; }
+.folder-row.active .badge { background: #ddd6fe; color: var(--primary); }
+.folder-children { padding-left: 14px; }
+.folder-title-row { display: flex; align-items: center; justify-content: space-between; }
+.folder-title-row .btn-add-folder {
+  font-size: 11px; background: none; border: none; color: #bbb; cursor: pointer;
+  padding: 2px 6px; border-radius: 4px; transition: all var(--transition);
+}
+.folder-title-row .btn-add-folder:hover { color: var(--primary); background: var(--primary-light); }
+
+/* 右键菜单 */
+.context-menu {
+  display: none; position: fixed; z-index: 150;
+  background: var(--card-bg); border-radius: var(--radius);
+  box-shadow: var(--shadow-lg); padding: 6px; min-width: 140px;
+  border: 1px solid var(--border);
+}
+.context-menu .ctx-item {
+  display: block; width: 100%; text-align: left; padding: 7px 12px;
+  font-size: 13px; border: none; background: none; cursor: pointer;
+  border-radius: var(--radius-sm); color: var(--text);
+  transition: background var(--transition);
+}
+.context-menu .ctx-item:hover { background: var(--bg); }
+.context-menu .ctx-item.danger { color: var(--danger); }
+.context-menu .ctx-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+/* 弹窗目录选择器 */
+.modal select {
+  width: 100%; padding: 10px 13px; font-size: 14px;
+  border: 1.5px solid var(--border); border-radius: var(--radius);
+  outline: none; margin-bottom: 18px; background: var(--bg);
+  transition: border-color var(--transition), box-shadow var(--transition);
+  appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%23999'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; cursor: pointer;
+}
+.modal select:focus { border-color: var(--primary); background-color: #fff; box-shadow: 0 0 0 3px rgba(99,102,241,.08); }
+.modal select option.hidden-opt { color: #999; }
+.modal select option { padding: 4px 0; }
+
+/* ---------- 主内容 ---------- */
+.main { flex: 1; max-width: 840px; margin: 0 auto; padding: 28px 20px 40px; width: 100%; }
+
+.toolbar { display: flex; gap: 10px; margin-bottom: 28px; align-items: center; flex-wrap: wrap; }
+.toolbar .search-wrap { flex: 1; min-width: 160px; position: relative; }
+.toolbar .search-wrap::before {
+  content: '\1F50D'; position: absolute; left: 12px; top: 50%;
+  transform: translateY(-50%); font-size: 14px; opacity: .4; pointer-events: none;
+}
+.toolbar input[type="text"] {
+  width: 100%; padding: 10px 14px 10px 36px; font-size: 14px;
+  border: 1.5px solid var(--border); border-radius: var(--radius);
+  outline: none; transition: all var(--transition); background: var(--card-bg);
+}
+.toolbar input[type="text"]:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,.08); }
+.toolbar .btn-new {
+  padding: 10px 22px; background: linear-gradient(135deg, var(--primary), #5b21b6);
+  color: #fff; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; transition: all var(--transition);
+  box-shadow: 0 2px 8px rgba(99,102,241,.25);
+}
+.toolbar .btn-new:hover { box-shadow: 0 4px 14px rgba(99,102,241,.35); transform: translateY(-1px); }
+.toolbar .btn-new:active { transform: translateY(0); }
+.toolbar .view-toggle {
+  font-size: 13px; display: flex; align-items: center; gap: 6px;
+  white-space: nowrap; cursor: pointer; user-select: none;
+  padding: 8px 12px; border-radius: var(--radius-sm);
+  background: var(--primary-light); color: var(--primary); font-weight: 500;
+}
+.toolbar .view-toggle input { accent-color: var(--primary); }
+.toolbar .tag-filter-hint {
+  font-size: 12px; color: var(--primary); background: var(--primary-light);
+  padding: 4px 10px; border-radius: 12px; display: flex; align-items: center; gap: 4px;
+  cursor: pointer;
+}
+.toolbar .tag-filter-hint .clear-tag { cursor: pointer; font-weight: 700; margin-left: 2px; }
+
+/* 笔记网格 */
+.notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.note-card {
+  background: var(--card-bg); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm); padding: 22px 20px 18px;
+  cursor: pointer; transition: all var(--transition);
+  position: relative; word-break: break-word;
+  border: 1px solid var(--border-light); overflow: hidden;
+}
+.note-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--primary), #8b5cf6);
+  opacity: 0; transition: opacity var(--transition);
+}
+.note-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
+.note-card:hover::before { opacity: 1; }
+.note-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 2px; letter-spacing: -.2px; }
+.note-card .note-owner {
+  font-size: 10px; font-weight: 600; color: var(--primary); margin-bottom: 4px;
+  background: var(--primary-light); display: inline-block; padding: 2px 7px; border-radius: 4px;
+}
+.note-card .note-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 6px; }
+.note-card .note-tag {
+  font-size: 10px; background: var(--border-light); color: var(--text-secondary);
+  padding: 2px 7px; border-radius: 4px; font-weight: 500;
+}
+.note-card .preview {
+  font-size: 13px; color: var(--text-secondary); line-height: 1.65;
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
+  overflow: hidden; margin-top: 6px;
+}
+.note-card .meta {
+  font-size: 11px; color: #bbb; margin-top: 14px;
+  display: flex; justify-content: space-between; align-items: center; font-weight: 500;
+}
+.note-card .btn-del {
+  font-size: 11px; font-weight: 500; color: var(--text-secondary);
+  background: none; border: none; cursor: pointer;
+  padding: 4px 8px; border-radius: var(--radius-sm);
+  transition: all var(--transition); opacity: 0;
+}
+.note-card:hover .btn-del { opacity: 1; }
+.note-card .btn-del:hover { color: var(--danger); background: var(--danger-light); }
+.note-card.selected { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(99,102,241,.15); }
+.note-card.selected::before { opacity: 1; }
+
+.notes-grid .note-card { animation: fadeUp .4s ease backwards; }
+.notes-grid .note-card:nth-child(1) { animation-delay: 0s; }
+.notes-grid .note-card:nth-child(2) { animation-delay: .04s; }
+.notes-grid .note-card:nth-child(3) { animation-delay: .08s; }
+.notes-grid .note-card:nth-child(4) { animation-delay: .12s; }
+.notes-grid .note-card:nth-child(5) { animation-delay: .16s; }
+.notes-grid .note-card:nth-child(6) { animation-delay: .2s; }
+
+.empty-state {
+  text-align: center; padding: 80px 20px; color: var(--text-secondary); grid-column: 1 / -1;
+}
+.empty-state .icon {
+  width: 72px; height: 72px; border-radius: 20px;
+  background: var(--primary-light); margin: 0 auto 16px;
+  display: flex; align-items: center; justify-content: center; font-size: 32px;
+}
+.empty-state h3 { font-size: 16px; color: var(--text); margin-bottom: 6px; }
+.empty-state p { font-size: 13px; }
+
+/* ---------- Toast ---------- */
+.toast-container { position: fixed; top: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--card-bg); border-radius: var(--radius);
+  padding: 12px 18px; box-shadow: var(--shadow-lg);
+  font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px;
+  animation: slideIn .3s ease; min-width: 200px; border-left: 3px solid;
+}
+.toast.success { border-color: #10b981; }
+.toast.error { border-color: var(--danger); }
+.toast.info { border-color: var(--primary); }
+
+/* ---------- 模态框 ---------- */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(15,15,30,.45); z-index: 100;
+  align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.active { display: flex; animation: fadeIn .2s ease; }
+.modal {
+  background: var(--card-bg); border-radius: var(--radius-xl);
+  width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto;
+  padding: 32px 28px; box-shadow: var(--shadow-xl); animation: fadeUp .3s ease;
+}
+.modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 22px; letter-spacing: -.3px; display: flex; align-items: center; justify-content: space-between; }
+.modal h2 .btn-expand {
+  width: 32px; height: 32px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--card-bg);
+  cursor: pointer; font-size: 16px; display: flex; align-items: center;
+  justify-content: center; transition: all var(--transition); color: var(--text-secondary);
+}
+.modal h2 .btn-expand:hover { background: var(--bg); color: var(--text); }
+.modal label { display: block; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
+.modal input, .modal textarea {
+  width: 100%; padding: 10px 13px; font-size: 14px; font-family: inherit;
+  border: 1.5px solid var(--border); border-radius: var(--radius);
+  outline: none; margin-bottom: 18px; resize: vertical;
+  transition: border-color var(--transition), box-shadow var(--transition); background: var(--bg);
+}
+.modal textarea { min-height: 150px; line-height: 1.7; }
+.modal input:focus, .modal textarea:focus {
+  border-color: var(--primary); background: #fff;
+  box-shadow: 0 0 0 3px rgba(99,102,241,.08);
+}
+.modal .tag-hint { font-size: 11px; color: #aaa; margin-top: -12px; margin-bottom: 16px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.modal-actions button {
+  padding: 9px 22px; font-size: 14px; font-weight: 500;
+  border-radius: var(--radius); cursor: pointer; transition: all var(--transition);
+}
+.btn-cancel { background: var(--bg); border: 1px solid var(--border); color: var(--text-secondary); }
+.btn-cancel:hover { background: var(--border); color: var(--text); }
+.btn-save { background: linear-gradient(135deg, var(--primary), #5b21b6); border: none; color: #fff; box-shadow: 0 2px 8px rgba(99,102,241,.2); }
+.btn-save:hover { box-shadow: 0 4px 14px rgba(99,102,241,.35); }
+.modal-actions .btn-delete { margin-right: auto; background: none; border: 1px solid var(--danger); color: var(--danger); }
+.modal-actions .btn-delete:hover { background: var(--danger-light); }
+.modal.fullscreen { max-width: none !important; width: 96vw; height: 94vh; display: flex; flex-direction: column; }
+.modal.fullscreen textarea { flex: 1; min-height: 300px; }
+.modal.fullscreen .modal-meta, .modal.fullscreen label { display: none; }
+.modal.fullscreen h2 { margin-bottom: 0; }
+
+/* 历史预览弹窗 */
+.history-preview { margin-bottom: 18px; }
+.history-preview .hp-content {
+  background: var(--bg); padding: 14px; border-radius: var(--radius);
+  font-size: 13px; line-height: 1.7; white-space: pre-wrap; max-height: 300px; overflow-y: auto;
+  color: var(--text-secondary); border: 1px solid var(--border);
+}
+
+/* ---------- 管理员面板 ---------- */
+.user-table { width: 100%; border-collapse: collapse; margin-bottom: 22px; font-size: 13px; }
+.user-table th { text-align: left; padding: 8px 12px; color: var(--text-secondary); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+.user-table td { padding: 10px 12px; border-bottom: 1px solid var(--border-light); font-weight: 500; }
+.user-table tbody tr:hover { background: var(--bg); }
+.user-table .btn-sm {
+  padding: 4px 11px; font-size: 12px; font-weight: 500; border-radius: var(--radius-sm);
+  cursor: pointer; border: 1px solid var(--border); background: var(--card-bg);
+  margin-right: 5px; transition: all var(--transition);
+}
+.user-table .btn-sm:hover { background: var(--bg); }
+.user-table .btn-sm.danger { border-color: var(--danger); color: var(--danger); }
+.user-table .btn-sm.danger:hover { background: var(--danger-light); }
+.admin-create { display: flex; gap: 10px; align-items: flex-end; }
+.admin-create > div { flex: 1; }
+.admin-create label { font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px; color: var(--text-secondary); }
+.admin-create input {
+  width: 100%; padding: 8px 11px; font-size: 13px;
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  outline: none; background: var(--bg); transition: all var(--transition);
+}
+.admin-create input:focus { border-color: var(--primary); background: #fff; }
+.admin-create button {
+  padding: 8px 18px; height: fit-content;
+  background: var(--primary); color: #fff; border: none;
+  border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all var(--transition);
+}
+.admin-create button:hover { background: var(--primary-hover); }
+.admin-error { color: var(--danger); font-size: 12px; font-weight: 500; margin-top: 8px; display: none; background: var(--danger-light); padding: 6px 10px; border-radius: var(--radius-sm); }
+
+/* ---------- 动画 ---------- */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+/* 移动端 */
+@media (max-width: 768px) {
+  .btn-sidebar-toggle { display: flex; }
+  .sidebar { display: none; position: fixed; top: 60px; left: 0; bottom: 0; z-index: 20; box-shadow: var(--shadow-lg); }
+  .sidebar.open { display: flex; }
+  .main { padding: 20px 12px; }
+  .notes-grid { grid-template-columns: 1fr; }
+  .toolbar { flex-direction: column; }
+  .admin-create { flex-direction: column; }
+  .modal { padding: 24px 18px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Toast -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- 登录页 -->
+<div class="login-page active" id="loginPage">
+  <div class="login-card">
+    <div class="logo">&#x1F4DD;</div>
+    <h1>备忘录</h1>
+    <p class="sub">登录以访问你的笔记</p>
+    <div class="field"><label>用户名</label><input type="text" id="usernameInput" placeholder="输入用户名" autofocus></div>
+    <div class="field"><label>密码</label><input type="password" id="passwordInput" placeholder="输入密码"></div>
+    <button id="loginBtn">登 录</button>
+    <div class="login-error" id="loginError">用户名或密码错误，请重试</div>
+  </div>
+</div>
+
+<!-- 主页面 -->
+<div class="app-page" id="appPage">
+  <header class="header">
+    <div class="header-left">
+      <button class="btn-sidebar-toggle" id="btnSidebarToggle" title="侧边栏">☰</button>
+      <h1>备忘录</h1>
+    </div>
+    <div class="header-right">
+      <span class="user-tag" id="userDisplay"></span>
+      <button class="btn-admin" id="btnAdmin" style="display:none">用户管理</button>
+      <button id="logoutBtn">退出</button>
+    </div>
+  </header>
+  <div class="app-body">
+    <!-- 侧边栏 -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-section">
+        <div class="btn-all-notes active" id="btnAllNotes">📂 全部笔记</div>
+        <div style="margin-top:12px">
+          <div class="folder-title-row">
+            <h4>📁 目录</h4>
+            <button class="btn-add-folder" id="btnAddRootFolder" title="新建目录">+</button>
+          </div>
+          <div class="folder-tree" id="folderTree"></div>
+          <div class="btn-all-notes" id="btnUncategorized" style="font-weight:400;font-size:12px;margin-left:4px">未分类 <span id="uncategorizedCount">0</span></div>
+        </div>
+        <div style="margin-top:12px">
+          <h4>🏷️ 标签 <span class="badge" id="tagCount">0</span></h4>
+          <div class="tag-list" id="tagList"></div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="sidebar-section" id="historySection">
+        <h4>📝 修改历史</h4>
+        <div class="history-empty" id="historyEmpty">选择一条笔记查看历史</div>
+        <div class="history-list" id="historyList"></div>
+      </div>
+    </aside>
+    <!-- 主内容 -->
+    <main class="main">
+      <div class="toolbar">
+        <div class="search-wrap"><input type="text" id="searchInput" placeholder="搜索笔记..."></div>
+        <span class="tag-filter-hint" id="tagFilterHint" style="display:none">
+          🏷️ <span id="tagFilterLabel"></span> <span class="clear-tag" id="clearTagFilter">×</span>
+        </span>
+        <label class="view-toggle" id="adminViewToggle" style="display:none">
+          <input type="checkbox" id="chkAllNotes"> 查看全部
+        </label>
+        <button class="btn-new" id="btnNew">+ 新建笔记</button>
+      </div>
+      <div class="notes-grid" id="notesGrid"></div>
+    </main>
+  </div>
+</div>
+
+<!-- 编辑弹窗 -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>
+      <span id="modalTitle">新建笔记</span>
+      <button class="btn-expand" id="btnExpand" title="全屏查看">⛶</button>
+    </h2>
+    <div class="modal-meta">
+      <label>标题</label>
+      <input type="text" id="noteTitle" placeholder="给笔记起个标题">
+      <label>所属目录</label>
+      <select id="noteFolder"><option value="">（未分类）</option></select>
+      <label>标签</label>
+      <input type="text" id="noteTags" placeholder="用逗号分隔，如: 工作, 重要">
+      <div class="tag-hint">用逗号分隔多个标签</div>
+    </div>
+    <label>内容</label>
+    <textarea id="noteContent" placeholder="写下你想记录的内容..."></textarea>
+    <div class="modal-actions">
+      <button class="btn-delete" id="btnDelete" style="display:none">删除</button>
+      <button class="btn-cancel" id="btnCancel">取消</button>
+      <button class="btn-save" id="btnSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 历史预览弹窗 -->
+<div class="modal-overlay" id="historyModalOverlay">
+  <div class="modal">
+    <h2>历史版本</h2>
+    <div class="history-preview">
+      <label>标题</label>
+      <div class="hp-content" id="hpTitle"></div>
+      <label>内容</label>
+      <div class="hp-content" id="hpContent"></div>
+      <label>保存时间</label>
+      <div class="hp-content" id="hpTime"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btnHistoryClose">关闭</button>
+      <button class="btn-save" id="btnRestore">恢复此版本</button>
+    </div>
+  </div>
+</div>
+
+<!-- 管理员面板 -->
+<div class="modal-overlay" id="adminModalOverlay">
+  <div class="modal" style="max-width:620px">
+    <h2>用户管理</h2>
+    <div id="adminUserTable"></div>
+    <div class="admin-error" id="adminError"></div>
+    <div class="admin-create">
+      <div><label>用户名</label><input type="text" id="newUsername" placeholder="新用户名"></div>
+      <div><label>密码</label><input type="password" id="newPassword" placeholder="至少4位"></div>
+      <button id="btnCreateUser">创建</button>
+    </div>
+    <div class="modal-actions" style="margin-top:18px"><button class="btn-cancel" id="btnAdminClose">关闭</button></div>
+  </div>
+</div>
+
+<!-- 右键菜单 -->
+<div class="context-menu" id="contextMenu">
+  <button class="ctx-item" data-action="new-folder">+ 新建子目录</button>
+  <button class="ctx-item" data-action="rename">重命名</button>
+  <div class="ctx-divider"></div>
+  <button class="ctx-item danger" data-action="delete-folder">删除目录</button>
+</div>
+
+<script>
+const P = (s) => document.getElementById(s);
+const loginPage = P('loginPage');
+const appPage = P('appPage');
+const notesGrid = P('notesGrid');
+const modalOverlay = P('modalOverlay');
+const searchInput = P('searchInput');
+const noteTitle = P('noteTitle');
+const noteTags = P('noteTags');
+const noteContent = P('noteContent');
+const noteFolder = P('noteFolder');
+const btnDelete = P('btnDelete');
+const toastContainer = P('toastContainer');
+const sidebar = P('sidebar');
+const tagList = P('tagList');
+const folderTree = P('folderTree');
+const historyList = P('historyList');
+const historyEmpty = P('historyEmpty');
+const contextMenu = P('contextMenu');
+
+let token = sessionStorage.getItem('memo_token');
+let cachedNotes = [];
+let currentUser = {
+  username: sessionStorage.getItem('memo_username'),
+  role: sessionStorage.getItem('memo_role'),
+};
+let editingId = null;
+let adminViewAll = false;
+let selectedTag = null;
+let selectedNoteId = null;
+let selectedFolderId = null;
+let isFullscreen = false;
+let ctxFolderId = null;
+let foldersData = [];
+
+// ---------- Toast ----------
+function toast(msg, type) {
+  type = type || 'info';
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  el.innerHTML = `<span>${icons[type] || ''}</span> ${msg}`;
+  toastContainer.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; }, 2500);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ---------- 初始化 ----------
+if (token && currentUser.username) { showApp(); loadNotes(); loadTags(); loadFolders(); }
+
+// ---------- 登录 ----------
+P('loginBtn').onclick = async () => {
+  const username = P('usernameInput').value.trim();
+  const pw = P('passwordInput').value;
+  if (!username || !pw) { P('loginError').style.display = 'block'; return; }
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password: pw })
+    });
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    token = data.token;
+    currentUser = { username: data.username, role: data.role };
+    sessionStorage.setItem('memo_token', token);
+    sessionStorage.setItem('memo_username', data.username);
+    sessionStorage.setItem('memo_role', data.role);
+    P('loginError').style.display = 'none';
+    showApp();
+    loadNotes();
+    loadTags();
+    loadFolders();
+  } catch { P('loginError').style.display = 'block'; }
+};
+P('passwordInput').onkeydown = (e) => { if (e.key === 'Enter') P('loginBtn').click(); };
+P('usernameInput').onkeydown = (e) => { if (e.key === 'Enter') P('passwordInput').focus(); };
+
+// ---------- 退出 ----------
+P('logoutBtn').onclick = async () => {
+  await fetch('/api/logout', { method: 'POST', headers: authHeaders() });
+  clearSession();
+};
+
+// ---------- 辅助 ----------
+function authHeaders() {
+  return token ? { 'Authorization': token, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+}
+function showApp() {
+  loginPage.classList.remove('active');
+  appPage.classList.add('active');
+  P('userDisplay').innerHTML = `${escHtml(currentUser.username)} <span class="role-badge">${currentUser.role === 'admin' ? 'Admin' : 'User'}</span>`;
+  if (currentUser.role === 'admin') { P('btnAdmin').style.display = ''; P('adminViewToggle').style.display = ''; }
+  else { P('btnAdmin').style.display = 'none'; P('adminViewToggle').style.display = 'none'; }
+}
+function clearSession() {
+  sessionStorage.removeItem('memo_token'); sessionStorage.removeItem('memo_username'); sessionStorage.removeItem('memo_role');
+  token = null; currentUser = {}; adminViewAll = false; selectedTag = null; selectedNoteId = null; selectedFolderId = null; foldersData = [];
+  P('chkAllNotes').checked = false;
+  loginPage.classList.add('active'); appPage.classList.remove('active');
+}
+function escHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+// ---------- 侧边栏 ----------
+P('btnSidebarToggle').onclick = () => sidebar.classList.toggle('open');
+
+async function loadTags() {
+  try {
+    const res = await fetch('/api/tags', { headers: authHeaders() });
+    const tags = await res.json();
+    renderTags(tags);
+  } catch {}
+}
+
+function renderTags(tags) {
+  P('tagCount').textContent = tags.length;
+  let html = '';
+  tags.forEach((t) => {
+    html += `<div class="tag-item${selectedTag === t.name ? ' active' : ''}" data-tag="${escHtml(t.name)}">
+      <span>${escHtml(t.name)}</span><span class="count">${t.count}</span>
+    </div>`;
+  });
+  tagList.innerHTML = html;
+  tagList.querySelectorAll('.tag-item').forEach((el) => {
+    el.onclick = () => {
+      sidebar.classList.remove('open');
+      const tag = el.dataset.tag;
+      if (selectedTag === tag) { selectedTag = null; }
+      else { selectedTag = tag; }
+      selectedFolderId = null; selectedNoteId = null;
+      loadFolders();
+      renderTags(tags);
+      P('btnAllNotes').classList.remove('active');
+      if (selectedTag) { P('tagFilterHint').style.display = ''; P('tagFilterLabel').textContent = selectedTag; }
+      else P('tagFilterHint').style.display = 'none';
+      loadNotes();
+      clearHistoryPanel();
+    };
+  });
+}
+
+P('btnAllNotes').onclick = () => {
+  sidebar.classList.remove('open');
+  selectedTag = null; selectedNoteId = null; selectedFolderId = null;
+  P('btnAllNotes').classList.add('active');
+  P('tagFilterHint').style.display = 'none';
+  loadTags();
+  loadNotes();
+  loadFolders();
+  clearHistoryPanel();
+};
+
+P('clearTagFilter').onclick = (e) => { e.stopPropagation(); P('btnAllNotes').click(); };
+
+// ---------- 目录功能 ----------
+
+async function loadFolders() {
+  try {
+    const res = await fetch('/api/folders', { headers: authHeaders() });
+    const data = await res.json();
+    foldersData = data.tree;
+    renderFolderTree(data.tree);
+    P('uncategorizedCount').textContent = `(${data.uncategorizedCount})`;
+    populateFolderSelect(data.tree);
+  } catch {}
+}
+
+function renderFolderTree(tree) {
+  folderTree.innerHTML = tree.map((f) => renderFolderRow(f, 0)).join('');
+  folderTree.querySelectorAll('.folder-row').forEach((row) => {
+    row.onclick = (e) => { e.stopPropagation(); selectFolder(row.dataset.id); sidebar.classList.remove('open'); };
+    row.oncontextmenu = (e) => { e.preventDefault(); openFolderContext(e, row.dataset.id); };
+    const arrow = row.querySelector('.arrow');
+    if (arrow && !arrow.classList.contains('hidden')) {
+      arrow.onclick = (e) => {
+        e.stopPropagation();
+        const children = row.parentElement.querySelector('.folder-children');
+        if (children) {
+          children.style.display = children.style.display === 'none' ? '' : 'none';
+          arrow.classList.toggle('open');
+        }
+      };
+    }
+  });
+  // Auto-expand to show active folder
+  if (selectedFolderId) expandToFolder(selectedFolderId);
+}
+
+function renderFolderRow(f, depth) {
+  const hasChildren = f.children && f.children.length > 0;
+  const arrowClass = hasChildren ? '' : 'hidden';
+  const activeClass = selectedFolderId === f.id ? ' active' : '';
+  const children = hasChildren ? `<div class="folder-children">${f.children.map((c) => renderFolderRow(c, depth + 1)).join('')}</div>` : '';
+  return `<div class="folder-row${activeClass}" data-id="${f.id}" style="padding-left:${4 + depth * 16}px">
+    <span class="arrow${hasChildren ? '' : ' hidden'}">▶</span>
+    <span class="folder-icon">📁</span>
+    <span class="folder-name">${escHtml(f.name)}</span>
+    <span class="badge">${f.noteCount}</span>
+  </div>${children}`;
+}
+
+function selectFolder(id) {
+  if (selectedFolderId === id) { selectedFolderId = null; }
+  else { selectedFolderId = id; }
+  selectedTag = null; selectedNoteId = null;
+  P('btnAllNotes').classList.remove('active');
+  P('tagFilterHint').style.display = 'none';
+  loadNotes(); loadFolders(); loadTags(); clearHistoryPanel();
+}
+
+function expandToFolder(id) {
+  const row = folderTree.querySelector(`.folder-row[data-id="${id}"]`);
+  if (!row) return;
+  let parent = row.parentElement;
+  while (parent && parent !== folderTree) {
+    if (parent.classList.contains('folder-children')) {
+      parent.style.display = '';
+      const prev = parent.previousElementSibling;
+      if (prev) {
+        const arrow = prev.querySelector('.arrow');
+        if (arrow) arrow.classList.add('open');
+      }
+    }
+    parent = parent.parentElement;
+  }
+}
+
+function collectDescendantIds(folderId, tree) {
+  let ids = [folderId];
+  for (const f of tree) {
+    if (f.id === folderId) {
+      function walk(node) { ids.push(node.id); (node.children || []).forEach(walk); }
+      (f.children || []).forEach(walk);
+      break;
+    }
+    ids = ids.concat(collectDescendantIds(folderId, f.children || []));
+  }
+  return ids;
+}
+
+function populateFolderSelect(tree, depth) {
+  if (depth === undefined) {
+    noteFolder.innerHTML = '<option value="">（未分类）</option>';
+    depth = 0;
+  }
+  tree.forEach((f) => {
+    const indent = '　'.repeat(depth);
+    noteFolder.innerHTML += `<option value="${f.id}" style="padding-left:${8 + depth * 12}px">${indent}${escHtml(f.name)}</option>`;
+    if (f.children && f.children.length) populateFolderSelect(f.children, depth + 1);
+  });
+}
+
+function openFolderContext(e, folderId) {
+  ctxFolderId = folderId;
+  contextMenu.style.display = 'block';
+  contextMenu.style.left = e.clientX + 'px';
+  contextMenu.style.top = e.clientY + 'px';
+}
+
+document.addEventListener('click', () => { contextMenu.style.display = 'none'; });
+
+P('btnAddRootFolder').onclick = () => {
+  const name = prompt('新目录名称:');
+  if (!name || !name.trim()) return;
+  createFolder(name.trim(), null);
+};
+
+contextMenu.querySelectorAll('.ctx-item').forEach((item) => {
+  item.onclick = () => {
+    const action = item.dataset.action;
+    if (action === 'new-folder') {
+      const name = prompt('子目录名称:');
+      if (name && name.trim()) createFolder(name.trim(), ctxFolderId);
+    } else if (action === 'rename') {
+      const name = prompt('新名称:');
+      if (name && name.trim()) renameFolder(ctxFolderId, name.trim());
+    } else if (action === 'delete-folder') {
+      if (confirm('确定删除此目录及其所有子目录？笔记将被移入"未分类"。')) deleteFolder(ctxFolderId);
+    }
+    contextMenu.style.display = 'none';
+  };
+});
+
+async function createFolder(name, parentId) {
+  try {
+    await fetch('/api/folders', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ name, parentId })
+    });
+    loadFolders();
+  } catch {}
+}
+
+async function renameFolder(id, name) {
+  try {
+    await fetch(`/api/folders/${id}`, {
+      method: 'PUT', headers: authHeaders(),
+      body: JSON.stringify({ name })
+    });
+    loadFolders();
+  } catch {}
+}
+
+async function deleteFolder(id) {
+  try {
+    await fetch(`/api/folders/${id}`, { method: 'DELETE', headers: authHeaders() });
+    if (selectedFolderId === id) { selectedFolderId = null; loadNotes(); }
+    loadFolders();
+  } catch {}
+}
+
+P('btnUncategorized').onclick = () => {
+  selectedFolderId = '__uncategorized__';
+  selectedTag = null; selectedNoteId = null;
+  P('btnAllNotes').classList.remove('active');
+  P('tagFilterHint').style.display = 'none';
+  loadNotes(); loadFolders(); clearHistoryPanel();
+  sidebar.classList.remove('open');
+};
+
+// ---------- 历史面板 ----------
+async function loadHistory(noteId) {
+  try {
+    const res = await fetch(`/api/notes/${noteId}/history`, { headers: authHeaders() });
+    const history = await res.json();
+    renderHistory(history);
+  } catch { historyList.innerHTML = ''; }
+}
+
+function renderHistory(history) {
+  if (!history.length) {
+    historyEmpty.style.display = ''; historyList.innerHTML = '';
+    return;
+  }
+  historyEmpty.style.display = 'none';
+  historyList.innerHTML = history.map((h) => {
+    const time = new Date(h.savedAt).toLocaleString('zh-CN', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    return `<div class="history-item" data-hid="${h.id}">
+      <span>${escHtml(h.title)}</span>
+      <span class="h-time">${time}</span>
+    </div>`;
+  }).join('');
+  historyList.querySelectorAll('.history-item').forEach((el) => {
+    el.onclick = () => openHistoryPreview(el.dataset.hid);
+  });
+}
+
+function clearHistoryPanel() {
+  selectedNoteId = null;
+  historyEmpty.style.display = ''; historyList.innerHTML = '';
+  document.querySelectorAll('.note-card.selected').forEach((c) => c.classList.remove('selected'));
+}
+
+// ---------- 历史预览 / 恢复 ----------
+let restoreHistoryId = null;
+let restoreNoteId = null;
+
+function openHistoryPreview(historyId) {
+  restoreHistoryId = historyId;
+  restoreNoteId = selectedNoteId;
+  P('historyModalOverlay').classList.add('active');
+  // 加载历史详情
+  fetch(`/api/notes/${restoreNoteId}/history`, { headers: authHeaders() }).then((r) => r.json()).then((list) => {
+    const h = list.find((e) => e.id === historyId);
+    if (h) {
+      P('hpTitle').textContent = h.title;
+      P('hpContent').textContent = h.content;
+      P('hpTime').textContent = new Date(h.savedAt).toLocaleString('zh-CN');
+    }
+  });
+}
+
+P('btnHistoryClose').onclick = () => P('historyModalOverlay').classList.remove('active');
+P('historyModalOverlay').onclick = (e) => { if (e.target === P('historyModalOverlay')) P('historyModalOverlay').classList.remove('active'); };
+
+P('btnRestore').onclick = async () => {
+  if (!restoreNoteId || !restoreHistoryId || !confirm('确定恢复到这个历史版本吗？当前内容将被保存为一个新版本。')) return;
+  try {
+    const res = await fetch(`/api/notes/${restoreNoteId}/restore/${restoreHistoryId}`, { method: 'POST', headers: authHeaders() });
+    if (!res.ok) throw new Error();
+    P('historyModalOverlay').classList.remove('active');
+    loadNotes();
+    loadTags();
+    if (selectedNoteId) loadHistory(selectedNoteId);
+    toast('已恢复到历史版本', 'success');
+  } catch { toast('恢复失败', 'error'); }
+};
+
+// ---------- 加载笔记 ----------
+async function loadNotes() {
+  let url = '/api/notes';
+  const params = [];
+  const q = searchInput.value.trim();
+  if (q) { url = '/api/notes/search'; params.push(`q=${encodeURIComponent(q)}`); }
+  if (adminViewAll && currentUser.role === 'admin') params.push('all=true');
+  if (params.length) url += '?' + params.join('&');
+  try {
+    const res = await fetch(url, { headers: authHeaders() });
+    if (res.status === 401) { clearSession(); return; }
+    let notes = await res.json();
+    // 标签筛选
+    if (selectedTag) notes = notes.filter((n) => (n.tags || []).includes(selectedTag));
+    // 目录筛选（包含子目录）
+    if (selectedFolderId === '__uncategorized__') notes = notes.filter((n) => !n.folderId);
+    else if (selectedFolderId) {
+      const allFolderIds = collectDescendantIds(selectedFolderId, foldersData);
+      notes = notes.filter((n) => allFolderIds.includes(n.folderId));
+    }
+    renderNotes(notes);
+  } catch { notesGrid.innerHTML = '<div class="empty-state"><p>加载失败，请刷新页面</p></div>'; }
+}
+
+function renderNotes(notes) {
+  cachedNotes = notes;
+  if (!notes.length) {
+    notesGrid.innerHTML = `<div class="empty-state">
+      <div class="icon">&#x1F4DD;</div>
+      <h3>${selectedTag ? `没有带"${escHtml(selectedTag)}"标签的笔记` : '还没有笔记'}</h3>
+      <p>点击"+ 新建笔记"开始记录</p></div>`;
+    return;
+  }
+  notesGrid.innerHTML = notes.map((n, i) => {
+    const preview = n.content ? escHtml(n.content) : '';
+    const time = new Date(n.updatedAt).toLocaleString('zh-CN', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    const ownerTag = n.username && n.username !== currentUser.username ? `<div class="note-owner">${escHtml(n.username)}</div>` : '';
+    const tagBadges = (n.tags || []).map((t) => `<span class="note-tag">${escHtml(t)}</span>`).join('');
+    return `<div class="note-card${selectedNoteId === n.id ? ' selected' : ''}" data-id="${n.id}" style="animation-delay:${i*.04}s">
+        <h3>${escHtml(n.title)}</h3>
+        ${ownerTag}
+        ${tagBadges ? `<div class="note-tags">${tagBadges}</div>` : ''}
+        <div class="preview">${preview || '（无内容）'}</div>
+        <div class="meta"><span>${time}</span><button class="btn-del" data-action="delete">删除</button></div>
+      </div>`;
+  }).join('');
+
+  notesGrid.querySelectorAll('.note-card').forEach((card) => {
+    card.addEventListener('click', (e) => {
+      if (e.target.dataset.action === 'delete') { e.stopPropagation(); deleteNote(card.dataset.id); return; }
+      selectNote(card.dataset.id);
+    });
+  });
+}
+
+function selectNote(id) {
+  selectedNoteId = id;
+  sidebar.classList.remove('open');
+  document.querySelectorAll('.note-card.selected').forEach((c) => c.classList.remove('selected'));
+  const card = document.querySelector(`.note-card[data-id="${id}"]`);
+  if (card) card.classList.add('selected');
+  loadHistory(id);
+  openModal(id);
+}
+
+// ---------- 新建 / 编辑 ----------
+P('btnNew').onclick = () => { sidebar.classList.remove('open'); openModal(); };
+searchInput.oninput = () => loadNotes();
+P('chkAllNotes').onchange = function() { adminViewAll = this.checked; loadNotes(); };
+
+function openModal(id) {
+  editingId = id || null;
+  if (id) {
+    P('modalTitle').textContent = '编辑笔记';
+    btnDelete.style.display = '';
+    loadNoteFromCache(id);
+  } else {
+    P('modalTitle').textContent = '新建笔记';
+    btnDelete.style.display = 'none';
+    noteTitle.value = '';
+    noteFolder.value = '';
+    noteTags.value = '';
+    noteContent.value = '';
+  }
+  modalOverlay.classList.add('active');
+  noteTitle.focus();
+}
+
+async function loadNoteFromCache(id) {
+  let note = cachedNotes.find((n) => n.id === id);
+  if (!note) {
+    // 缓存没命中，从服务器拉取
+    try {
+      const url = `/api/notes${adminViewAll && currentUser.role === 'admin' ? '?all=true' : ''}`;
+      const res = await fetch(url, { headers: authHeaders() });
+      const notes = await res.json();
+      note = notes.find((n) => n.id === id);
+    } catch {}
+  }
+  if (note) {
+    noteTitle.value = note.title;
+    noteFolder.value = note.folderId || '';
+    noteTags.value = (note.tags || []).join(', ');
+    noteContent.value = note.content;
+  }
+}
+
+P('btnCancel').onclick = closeModal;
+modalOverlay.onclick = (e) => { if (e.target === modalOverlay) closeModal(); };
+
+function closeModal() {
+  modalOverlay.classList.remove('active');
+  document.querySelector('#modalOverlay .modal').classList.remove('fullscreen');
+  isFullscreen = false;
+  P('btnExpand').textContent = '⛶';
+  editingId = null;
+}
+
+P('btnExpand').onclick = (e) => {
+  e.stopPropagation();
+  isFullscreen = !isFullscreen;
+  document.querySelector('#modalOverlay .modal').classList.toggle('fullscreen', isFullscreen);
+  P('btnExpand').textContent = isFullscreen ? '✕' : '⛶';
+};
+
+P('btnSave').onclick = async () => {
+  const title = noteTitle.value.trim();
+  if (!title) { noteTitle.focus(); return; }
+  const content = noteContent.value.trim();
+  const rawTags = noteTags.value.trim();
+  const tags = rawTags ? rawTags.split(/[,，]/).map((t) => t.trim()).filter(Boolean) : [];
+  const folderId = noteFolder.value || null;
+  const method = editingId ? 'PUT' : 'POST';
+  const url = editingId ? `/api/notes/${editingId}` : '/api/notes';
+  try {
+    const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify({ title, content, tags, folderId }) });
+    if (!res.ok) throw new Error();
+    closeModal();
+    loadNotes();
+    loadTags();
+    loadFolders();
+    if (selectedNoteId) loadHistory(selectedNoteId);
+    toast(editingId ? '笔记已保存' : '笔记已创建', 'success');
+  } catch { toast('保存失败', 'error'); }
+};
+
+btnDelete.onclick = async () => {
+  if (!editingId || !confirm('确定删除这条笔记吗？')) return;
+  try {
+    await fetch(`/api/notes/${editingId}`, { method: 'DELETE', headers: authHeaders() });
+    closeModal();
+    if (selectedNoteId === editingId) clearHistoryPanel();
+    loadNotes();
+    loadTags();
+    loadFolders();
+    toast('笔记已删除', 'success');
+  } catch { toast('删除失败', 'error'); }
+};
+
+async function deleteNote(id) {
+  if (!confirm('确定删除这条笔记吗？')) return;
+  try {
+    await fetch(`/api/notes/${id}`, { method: 'DELETE', headers: authHeaders() });
+    if (selectedNoteId === id) clearHistoryPanel();
+    loadNotes();
+    loadTags();
+    loadFolders();
+    toast('笔记已删除', 'success');
+  } catch { toast('删除失败', 'error'); }
+}
+
+// ---------- 管理员面板 ----------
+P('btnAdmin').onclick = openAdminPanel;
+P('btnAdminClose').onclick = closeAdminPanel;
+P('adminModalOverlay').onclick = (e) => { if (e.target === P('adminModalOverlay')) closeAdminPanel(); };
+async function openAdminPanel() { P('adminModalOverlay').classList.add('active'); await loadUsers(); }
+function closeAdminPanel() { P('adminModalOverlay').classList.remove('active'); }
+async function loadUsers() {
+  try {
+    const res = await fetch('/api/admin/users', { headers: authHeaders() });
+    renderUserTable(await res.json());
+  } catch { P('adminUserTable').innerHTML = '<p style="color:var(--danger);font-size:13px">加载失败</p>'; }
+}
+function renderUserTable(users) {
+  const rows = users.map((u) => `
+    <tr><td>${escHtml(u.username)}</td><td>${u.role==='admin'?'管理员':'用户'}</td><td>${new Date(u.createdAt).toLocaleDateString('zh-CN')}</td>
+    <td><button class="btn-sm" onclick="resetPassword('${u.id}','${escHtml(u.username)}')">重置密码</button>
+    ${u.id!==currentUser.username?`<button class="btn-sm danger" onclick="deleteUser('${u.id}','${escHtml(u.username)}')">删除</button>`:''}</td></tr>`).join('');
+  P('adminUserTable').innerHTML = `<table class="user-table"><thead><tr><th>用户名</th><th>角色</th><th>创建时间</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+async function createUser(username, password) {
+  try {
+    const res = await fetch('/api/admin/users', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ username, password }) });
+    if (!res.ok) { const d=await res.json(); P('adminError').textContent=d.error; P('adminError').style.display='block'; return; }
+    P('adminError').style.display='none'; P('newUsername').value=''; P('newPassword').value=''; loadUsers();
+    toast(`用户 "${username}" 已创建`, 'success');
+  } catch {}
+}
+P('btnCreateUser').onclick = () => {
+  const u=P('newUsername').value.trim(), p=P('newPassword').value;
+  if(!u||!p||p.length<4){P('adminError').textContent='用户名不能为空，密码至少4位';P('adminError').style.display='block';return;}
+  createUser(u,p);
+};
+async function resetPassword(userId, username) {
+  const np = prompt(`为 "${username}" 设置新密码（至少4位）`);
+  if (!np || np.length<4) return;
+  try {
+    await fetch(`/api/admin/users/${userId}`,{method:'PUT',headers:authHeaders(),body:JSON.stringify({password:np})});
+    toast(`密码已重置`,'success');
+  } catch { toast('重置失败','error'); }
+}
+async function deleteUser(userId, username) {
+  if (!confirm(`确定删除用户 "${username}" 及其所有笔记吗？`)) return;
+  try {
+    await fetch(`/api/admin/users/${userId}`,{method:'DELETE',headers:authHeaders()});
+    loadUsers(); loadNotes(); loadTags(); loadFolders();
+    toast(`用户已删除`,'success');
+  } catch { toast('删除失败','error'); }
+}
+
+document.onkeydown = (e) => {
+  if (e.key === 'Escape') {
+    if (modalOverlay.classList.contains('active')) closeModal();
+    else if (P('historyModalOverlay').classList.contains('active')) P('historyModalOverlay').classList.remove('active');
+    else if (P('adminModalOverlay').classList.contains('active')) closeAdminPanel();
+  }
+};
+
+// 注册 Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js');
+}
+</script>
+</body>
+</html>
