@@ -528,7 +528,6 @@ body {
   .sidebar.open { display: flex; }
   .main { padding: 20px 12px; }
   .notes-grid { grid-template-columns: 1fr; }
-  .toolbar { flex-direction: column; }
   .admin-create { flex-direction: column; }
   .modal { padding: 24px 18px; }
   /* 手机端 header 简化 */
@@ -540,5 +539,12 @@ body {
   .btn-admin { font-size: 10px !important; }
   #btnTheme { font-size: 14px; padding: 4px 6px; }
   #btnExport, #logoutBtn { font-size: 11px; padding: 5px 8px; }
-  .toolbar #sortSelect { font-size: 11px; padding: 6px 8px; }
+  /* 手机端工具栏 */
+  .toolbar { flex-wrap: wrap; gap: 6px; }
+  .toolbar .search-wrap { flex: 1 1 100%; min-width: 0; }
+  .toolbar #sortSelect { font-size: 11px; padding: 6px 8px; flex: 0 1 auto; }
+  .toolbar .view-toggle { font-size: 11px; padding: 6px 8px; flex: 0 1 auto; }
+  .toolbar .btn-new { padding: 6px 14px; font-size: 12px; flex: 0 1 auto; }
+  .toolbar #btnImport { padding: 5px 10px; font-size: 11px; flex: 0 1 auto; }
+  .toolbar .tag-filter-hint { flex: 0 1 auto; }
 }
