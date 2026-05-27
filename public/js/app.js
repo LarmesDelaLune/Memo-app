@@ -601,7 +601,7 @@ function renderNotes(notes) {
     return;
   }
   notesGrid.innerHTML = notes.map((n, i) => {
-    const preview = n.content ? renderMarkdown(n.content) : '';
+    const preview = n.snippet || (n.content ? renderMarkdown(n.content.slice(0, 200)) : '');
     const time = new Date(n.updatedAt).toLocaleString('zh-CN', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
     const ownerTag = n.username && n.username !== currentUser.username ? `<div class="note-owner">${escHtml(n.username)}</div>` : '';
     const pinIcon = n.pinned ? '📌' : '';
@@ -643,6 +643,53 @@ function selectNote(id) {
 
 // ---------- 新建 / 编辑 ----------
 P('btnNew').onclick = () => { sidebar.classList.remove('open'); openModal(); };
+
+// 文件导入
+P('btnImport').onclick = () => P('fileInput').click();
+P('fileInput').onchange = async () => {
+  const files = [...P('fileInput').files];
+  P('fileInput').value = '';
+  let imported = 0, failed = 0;
+  for (const f of files) {
+    try {
+      const text = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsText(f);
+      });
+
+      if (!text || !text.trim()) { failed++; continue; }
+
+      const ext = f.name.split('.').pop().toLowerCase();
+      if (ext === 'json') {
+        const data = JSON.parse(text);
+        const noteList = data.notes || (Array.isArray(data) ? data : [data]);
+        for (const item of noteList) {
+          if (!item.title) continue;
+          const res = await fetch('/api/notes', {
+            method: 'POST', headers: authHeaders(),
+            body: JSON.stringify({ title: String(item.title), content: String(item.content || ''), tags: (item.tags || []), folderId: item.folderId || null })
+          });
+          if (res.ok) imported++; else failed++;
+        }
+      } else {
+        const title = f.name.replace(/\.(md|txt)$/i, '');
+        const res = await fetch('/api/notes', {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({ title, content: text, tags: [], folderId: null })
+        });
+        if (res.ok) imported++; else failed++;
+      }
+    } catch (e) {
+      failed++;
+    }
+  }
+  if (imported > 0 || failed > 0) { loadNotes(); loadTags(); loadFolders(); }
+  if (imported > 0) toast(`已导入 ${imported} 条笔记`, 'success');
+  if (failed > 0) toast(`${failed} 条导入失败（可能内容过大或格式错误）`, 'error');
+};
+
 searchInput.oninput = () => loadNotes();
 P('chkAllNotes').onchange = function() { adminViewAll = this.checked; loadNotes(); };
 const sortEl = P('sortSelect');
@@ -672,20 +719,16 @@ function openModal(id) {
 
 async function loadNoteFromCache(id) {
   let note = cachedNotes.find((n) => n.id === id);
-  if (!note) {
-    // 缓存没命中，从服务器拉取
-    try {
-      const url = `/api/notes${adminViewAll && currentUser.role === 'admin' ? '?all=true' : ''}`;
-      const res = await fetch(url, { headers: authHeaders() });
-      const notes = await res.json();
-      note = notes.find((n) => n.id === id);
-    } catch {}
-  }
+  // 从服务器获取完整内容
+  try {
+    const res = await fetch(`/api/notes/${id}`, { headers: authHeaders() });
+    if (res.ok) note = await res.json();
+  } catch {}
   if (note) {
     noteTitle.value = note.title;
     noteFolder.value = note.folderId || '';
     noteTags.value = (note.tags || []).join(', ');
-    noteContent.value = note.content;
+    noteContent.value = note.content || '';
   }
 }
 

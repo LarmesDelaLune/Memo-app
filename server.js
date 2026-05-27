@@ -15,7 +15,7 @@ const FOLDERS_FILE = path.join(__dirname, 'data', 'folders.json');
 const MAX_HISTORY = 10;
 const TOKEN_TTL = 86400000; // 24 小时
 const MAX_TITLE = 200;
-const MAX_CONTENT = 51200; // 50KB
+const MAX_CONTENT = 10485760; // 10MB
 const MAX_TAGS = 5;
 const MAX_TAG_LEN = 20;
 const MAX_FOLDER_NAME = 50;
@@ -36,7 +36,7 @@ function withLock(filePath, fn) {
   return chain;
 }
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // 请求日志
@@ -298,7 +298,25 @@ app.get('/api/notes', authMiddleware, (req, res) => {
     );
   }
   result.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+  // 列表不返回完整内容，只返摘要（搜索时保留前 300 字上下文）
+  const snippetLen = q ? 300 : 200;
+  result = result.map(({ content, ...rest }) => ({
+    ...rest,
+    snippet: content ? content.slice(0, snippetLen) : '',
+    hasContent: !!content,
+  }));
   res.json(result);
+});
+
+// 获取单条笔记完整内容
+app.get('/api/notes/:id', authMiddleware, (req, res) => {
+  const notes = readNotes();
+  const note = notes.find((n) => n.id === req.params.id);
+  if (!note) return res.status(404).json({ error: '笔记不存在' });
+  if (note.userId !== req.user.id && req.user.role !== 'admin') {
+    return res.status(403).json({ error: '无权查看此笔记' });
+  }
+  res.json(note);
 });
 
 app.post('/api/notes', authMiddleware, async (req, res) => {
